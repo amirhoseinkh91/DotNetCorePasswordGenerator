@@ -1,4 +1,4 @@
-﻿namespace Generator
+﻿namespace Password.Generator.Options
 {
     public sealed class PasswordGeneratorOptions
     {

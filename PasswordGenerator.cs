@@ -1,16 +1,18 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Password.Generator.Exceptions;
+using Password.Generator.Options;
 using System.Text.RegularExpressions;
 
-namespace Generator
+namespace Password.Generator
 {
     public class PasswordGenerator
     {
-        const int MAXIMUM_IDENTICAL_CONSECUTIVE_CHARS = 2;
-        const string LOWERCASE_CHARACTERS = "abcdefghijklmnopqrstuvwxyz";
-        const string UPPERCASE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        const string NUMERIC_CHARACTERS = "0123456789";
-        const string SPECIAL_CHARACTERS = @"!#$%&*@\";
-        const string SPACE_CHARACTER = " ";
+        private const int MAXIMUM_IDENTICAL_CONSECUTIVE_CHARS = 2;
+        private const string LOWERCASE_CHARACTERS = "abcdefghijklmnopqrstuvwxyz";
+        private const string UPPERCASE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        private const string NUMERIC_CHARACTERS = "0123456789";
+        private const string SPECIAL_CHARACTERS = @"!#$%&*@\";
+        private const string SPACE_CHARACTER = " ";
 
 
         private readonly int minimumPasswordLength = PasswordGeneratorOptions.MINIMUM_PASSWORD_LENGTH;
@@ -23,6 +25,19 @@ namespace Generator
         private readonly bool includeSpaces;
         private readonly int lengthOfPassword = PasswordGeneratorOptions.MINIMUM_PASSWORD_LENGTH;
 
+        private string characterSet = "";
+
+        public PasswordGenerator()
+        {
+            includeLowercase = true;
+            includeUppercase = true;
+            includeNumeric = true;
+            includeSpecialCharacters = true;
+            includeSpaces = false;
+            lengthOfPassword = minimumPasswordLength;
+            InitialCharset();
+        }
+
         public PasswordGenerator(PasswordGeneratorOptions options)
         {
             minimumPasswordLength = options.MinimumPasswordLength;
@@ -33,6 +48,7 @@ namespace Generator
             includeSpecialCharacters = options.IncludeSpecialCharacters;
             includeSpaces = options.IncludeSpaces;
             lengthOfPassword = options.LengthOfPassword;
+            InitialCharset();
         }
 
         public PasswordGenerator(PasswordOptions options)
@@ -43,20 +59,11 @@ namespace Generator
             includeSpecialCharacters = options.RequireNonAlphanumeric;
             includeSpaces = options.RequireNonAlphanumeric;
             lengthOfPassword = options.RequiredLength;
+            InitialCharset();
         }
-        /// <summary>
-        /// Generates a random password based on the rules passed in the parameters
-        /// </summary>
-        /// <returns>GeneratedPassword</returns>
-        public string Generate(int? length)
+
+        private void InitialCharset()
         {
-            if (length == null)
-                length = lengthOfPassword;
-            if (length < minimumPasswordLength || length > maximumPasswordLength)
-                throw new PasswordLengthNotCompatibleException();
-
-            string characterSet = "";
-
             if (includeLowercase)
                 characterSet += LOWERCASE_CHARACTERS;
 
@@ -71,14 +78,25 @@ namespace Generator
 
             if (includeSpaces)
                 characterSet += SPACE_CHARACTER;
+        }
 
-            char[] password = new char[lengthOfPassword];
-            int characterSetLength = characterSet.Length;
+        /// <summary>
+        /// Generates a random password based on the rules passed in the parameters
+        /// </summary>
+        /// <returns>GeneratedPassword</returns>
+        public string GeneratePassword(int? length = null)
+        {
+            if (length == null)
+                length = lengthOfPassword;
+            if (length < minimumPasswordLength || length > maximumPasswordLength)
+                throw new PasswordLengthNotCompatibleException();
+
+            char[] password = new char[length.Value];
 
             System.Random random = new System.Random();
-            for (int characterPosition = 0; characterPosition < lengthOfPassword; characterPosition++)
+            for (int characterPosition = 0; characterPosition < length; characterPosition++)
             {
-                password[characterPosition] = characterSet[random.Next(characterSetLength - 1)];
+                password[characterPosition] = characterSet[random.Next(characterSet.Length - 1)];
 
                 bool moreThanTwoIdenticalInARow =
                     characterPosition > MAXIMUM_IDENTICAL_CONSECUTIVE_CHARS
